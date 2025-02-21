@@ -8,6 +8,8 @@ app = FastAPI()
 origins = [
     "http://localhost:4200",  # Para el entorno de desarrollo en local
     "http://127.0.0.1:4200",  # Otra variante para local
+    "https://juliomr21.github.io",
+     "https://juliomr21.github.io/*",
     "https://juliomr21.github.io/ecommerce-template",  # URL de producción del frontend
     "https://juliomr21.github.io/ecommerce-template/*"  # URL de producción del frontend
 ]
