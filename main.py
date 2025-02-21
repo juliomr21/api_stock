@@ -7,7 +7,7 @@ app = FastAPI()
 origins = [
     "http://localhost:4200",  # Angular en desarrollo
     "http://127.0.0.1:4200",  # Otra variante
-    "https://juliomr21.github.io"
+    "https://juliomr21.github.io/ecommerce-template"
 ]
 
 # Agregar middleware CORS
