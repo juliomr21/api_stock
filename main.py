@@ -4,21 +4,23 @@ from routes import router
 
 app = FastAPI()
 
+# Definir los orígenes permitidos
 origins = [
-    "http://localhost:4200",  # Angular en desarrollo
-    "http://127.0.0.1:4200",  # Otra variante
-    "https://juliomr21.github.io/ecommerce-template"
+    "http://localhost:4200",  # Para el entorno de desarrollo en local
+    "http://127.0.0.1:4200",  # Otra variante para local
+    "https://juliomr21.github.io/ecommerce-template"  # URL de producción del frontend
 ]
 
-# Agregar middleware CORS
+# Agregar el middleware de CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,  # Permitir estas URLs
     allow_credentials=True,
-    allow_methods=["*"],  # Permitir todos los métodos (GET, POST, PUT, DELETE)
+    allow_methods=["*"],  # Permitir todos los métodos HTTP
     allow_headers=["*"],  # Permitir todos los headers
 )
 
+# Incluir las rutas del API
 app.include_router(router)
 
 @app.get("/")
