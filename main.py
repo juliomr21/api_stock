@@ -5,31 +5,31 @@ from routes import router
 app = FastAPI()
 
 # Definir los orígenes permitidos
-origins = [
-    "http://localhost:4200",  # Para el entorno de desarrollo en local
-    "http://127.0.0.1:4200",  # Otra variante para local
-    "https://juliomr21.github.io",
-     "https://juliomr21.github.io/*",
-    "https://juliomr21.github.io/ecommerce-template",  # URL de producción del frontend
-    "https://juliomr21.github.io/ecommerce-template/*"  # URL de producción del frontend
-]
+# origins = [
+#     "http://localhost:4200",  # Para el entorno de desarrollo en local
+#     "http://127.0.0.1:4200",  # Otra variante para local
+#     "https://juliomr21.github.io",
+#      "https://juliomr21.github.io/*",
+#     "https://juliomr21.github.io/ecommerce-template",  # URL de producción del frontend
+#     "https://juliomr21.github.io/ecommerce-template/*"  # URL de producción del frontend
+# ]
 
-# Agregar el middleware de CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,  # Permitir estas URLs
-    allow_credentials=True,
-    allow_methods=["*"],  # Permitir todos los métodos HTTP
-    allow_headers=["*"],  # Permitir todos los headers
-)
-
+# # Agregar el middleware de CORS
 # app.add_middleware(
 #     CORSMiddleware,
-#     allow_origins=["*"],  # Acepta todos los orígenes
+#     allow_origins=origins,  # Permitir estas URLs
 #     allow_credentials=True,
-#     allow_methods=["*"],  # Permitir todos los métodos HTTP (GET, POST, PUT, DELETE, etc.)
-#     allow_headers=["*"],  # Permitir todos los encabezados
+#     allow_methods=["*"],  # Permitir todos los métodos HTTP
+#     allow_headers=["*"],  # Permitir todos los headers
 # )
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Acepta todos los orígenes
+    allow_credentials=True,
+    allow_methods=["*"],  # Permitir todos los métodos HTTP (GET, POST, PUT, DELETE, etc.)
+    allow_headers=["*"],  # Permitir todos los encabezados
+)
 
 # Incluir las rutas del API
 app.include_router(router)
