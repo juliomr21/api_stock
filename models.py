@@ -48,6 +48,7 @@ class ClientCreate(BaseModel):
     name: str
     email: EmailStr
     phone: Optional[str] = None
+    user_id: Optional[str] = None
 
 class ClientResponse(ClientCreate):
     id: PyObjectId
