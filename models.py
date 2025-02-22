@@ -1,6 +1,7 @@
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, List
 from bson import ObjectId
+from datetime import datetime
 
 # Helper para manejar ObjectId en MongoDB
 class PyObjectId(str):
@@ -75,7 +76,7 @@ class ProductCreate(BaseModel):
     height: Optional[float] = None
     weight: Optional[float] = None
     length: Optional[float] = None
-
+    user_id: Optional[str] = None
 class ProductResponse(ProductCreate):
     id: PyObjectId
 
@@ -87,10 +88,12 @@ class ProductResponse(ProductCreate):
 class OrderItemCreate(BaseModel):
     product_id: PyObjectId
     quantity: int
+    price: float
 
 class OrderCreate(BaseModel):
-    user_id: PyObjectId
+    user_id: Optional[str] = None
     client_id: PyObjectId
+    client_name: str
     total: float
     valor: float
     products: List[OrderItemCreate]
@@ -99,9 +102,11 @@ class OrderResponse(BaseModel):
     id: PyObjectId
     user_id: PyObjectId
     client_id: PyObjectId
+    client_name: str
     total: float
     valor: float
+    date: datetime  # Nuevo campo para la fecha
     products: List[OrderItemCreate]
 
     class Config:
-        json_encoders = {ObjectId: str}
+           json_encoders = {ObjectId: str, datetime: lambda v: v.isoformat()}

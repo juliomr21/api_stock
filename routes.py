@@ -4,7 +4,8 @@ from database import db
 from models import LoginRequest, LoginResponse, UserCreate, UserResponse, ClientCreate, ClientResponse, ProductCreate, ProductResponse, OrderCreate, OrderResponse
 from auth import get_current_user, hash_password, verify_password, create_access_token
 from bson import ObjectId
-
+from pymongo import ReturnDocument
+from datetime import datetime
 router = APIRouter()
 
 # Colecciones de MongoDB
@@ -97,25 +98,26 @@ async def get_clients(current_user: str = Depends(get_current_user)):
     return [ClientResponse(id=str(client["_id"]), **client) for client in clients]
 # Crear un producto
 @router.post("/products", response_model=ProductResponse)
-async def create_product(product: ProductCreate):
+async def create_product(product: ProductCreate,current_user: str = Depends(get_current_user)):
     product_data = product.dict()
+    product_data["user_id"] = current_user
     result = await db["products"].insert_one(product_data)
     return ProductResponse(id=str(result.inserted_id), **product_data)
 
 # Obtener todos los productos
 @router.get("/products", response_model=List[ProductResponse])
-async def get_products():
-    products = await db["products"].find().to_list(100)
+async def get_products(current_user: str = Depends(get_current_user)):
+    products = await db["products"].find({"user_id": current_user}).to_list(100)
     return [ProductResponse(id=str(product["_id"]), **product) for product in products]
 
 # Obtener un producto por su id
 @router.get("/products/{product_id}", response_model=ProductResponse)
-async def get_product_by_id(product_id: str):
+async def get_product_by_id(product_id: str,current_user: str = Depends(get_current_user)):
     # Convertir el id a ObjectId de MongoDB
     product_object_id = ObjectId(product_id)
     
     # Buscar el producto en la base de datos
-    product = await db["products"].find_one({"_id": product_object_id})
+    product = await db["products"].find_one({"_id": product_object_id, "user_id": current_user})
     
     # Si no se encuentra el producto, lanzar un error 404
     if product is None:
@@ -126,16 +128,17 @@ async def get_product_by_id(product_id: str):
 
 # Actualizar un producto por su id
 @router.put("/products/{product_id}", response_model=ProductResponse)
-async def update_product(product_id: str, product: ProductCreate):
+async def update_product(product_id: str, product: ProductCreate,current_user: str = Depends(get_current_user)):
     # Convertir el id a ObjectId de MongoDB
     product_object_id = ObjectId(product_id)    
     # Buscar el producto en la base de datos
-    existing_product = await db["products"].find_one({"_id": product_object_id})    
+    existing_product = await db["products"].find_one({"_id": product_object_id, "user_id": current_user})    
     # Si no se encuentra el producto, lanzar un error 404
     if existing_product is None:
         raise HTTPException(status_code=404, detail="Producto no encontrado")    
     # Convertir los datos del producto a un diccionario
     product_data = product.dict()
+    product_data["user_id"] = current_user
     # Actualizar el producto en la base de datos
     update_result = await db["products"].update_one(
         {"_id": product_object_id}, {"$set": product_data}
@@ -153,12 +156,12 @@ async def update_product(product_id: str, product: ProductCreate):
 
 # Eliminar un producto por su id
 @router.delete("/products/{product_id}", response_model=ProductResponse)
-async def delete_product(product_id: str):
+async def delete_product(product_id: str,current_user: str = Depends(get_current_user)):
     # Convertir el id a ObjectId de MongoDB
     product_object_id = ObjectId(product_id)
     
     # Buscar el producto en la base de datos
-    existing_product = await db["products"].find_one({"_id": product_object_id})
+    existing_product = await db["products"].find_one({"_id": product_object_id, "user_id": current_user})
     
     # Si no se encuentra el producto, lanzar un error 404
     if existing_product is None:
@@ -175,14 +178,115 @@ async def delete_product(product_id: str):
     return ProductResponse(id=str(existing_product["_id"]), **existing_product)
 
 # Crear un pedido
+# @router.post("/orders", response_model=OrderResponse)
+# async def create_order(order: OrderCreate,current_user: str = Depends(get_current_user)):
+#     order_data = order.dict()
+#     order_data["user_id"] = current_user
+#     result = await db["orders"].insert_one(order_data)
+#     return OrderResponse(id=str(result.inserted_id), **order_data)
+
+# @router.post("/orders", response_model=OrderResponse)
+# async def create_order(order: OrderCreate, current_user: str = Depends(get_current_user)):
+#     # Convertir la orden a diccionario
+#     order_data = order.dict()
+#     order_data["user_id"] = current_user
+
+#     # Lista para almacenar los productos actualizados
+#     updated_products = []
+
+#     for item in order.products:
+#         product_id = ObjectId(item.product_id)
+#         quantity = item.quantity
+
+#         # Buscar el producto en la base de datos
+#         product = await db["products"].find_one({"_id": product_id, "user_id": current_user})
+
+#         # Si el producto no existe o no pertenece al usuario, lanzar error
+#         if not product:
+#             raise HTTPException(status_code=404, detail=f"Producto {product_id} no encontrado o no autorizado")
+
+#         # Verificar si hay suficiente stock
+#         if product.get("stock", 0) < quantity:
+#             raise HTTPException(status_code=400, detail=f"Stock insuficiente para el producto {product_id}")
+
+#         # Restar la cantidad comprada al stock
+#         updated_product = await db["products"].find_one_and_update(
+#             {"_id": product_id},
+#             {"$inc": {"stock": -quantity}},  # Resta la cantidad
+#             return_document=ReturnDocument.AFTER  # Devuelve el producto actualizado
+#         )
+
+#         updated_products.append({
+#             "product_id": product_id,
+#             "quantity": quantity,
+#             "remaining_stock": updated_product["stock"]
+#         })
+
+#     # Insertar la orden en la base de datos
+#     result = await db["orders"].insert_one(order_data)
+
+#     return OrderResponse(id=str(result.inserted_id), **order_data)
+
+from pymongo import ReturnDocument
+from fastapi import HTTPException
+
 @router.post("/orders", response_model=OrderResponse)
-async def create_order(order: OrderCreate):
+async def create_order(order: OrderCreate, current_user: str = Depends(get_current_user)):
+    # Convertir la orden a diccionario
     order_data = order.dict()
+    order_data["user_id"] = current_user
+    order_data["date"] = datetime.utcnow()
+    # Verificar si el cliente existe
+    client_id = ObjectId(order.client_id)
+    client = await db["clients"].find_one({"_id": client_id, "user_id": current_user})
+    if not client:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+
+    # Lista para almacenar productos actualizados
+    updated_products = []
+
+    for item in order.products:
+        product_id = ObjectId(item.product_id)
+        quantity = item.quantity
+
+        # Buscar el producto
+        product = await db["products"].find_one({"_id": product_id, "user_id": current_user})
+        if not product:
+            raise HTTPException(status_code=404, detail=f"Producto {product_id} no encontrado")
+
+        # Verificar stock
+        if product.get("stock", 0) < quantity:
+            raise HTTPException(status_code=400, detail=f"Stock insuficiente para el producto {product_id}")
+
+        # Actualizar stock
+        updated_product = await db["products"].find_one_and_update(
+            {"_id": product_id},
+            {"$inc": {"stock": -quantity}},  # Resta la cantidad comprada
+            return_document=ReturnDocument.AFTER
+        )
+
+        updated_products.append({
+            "product_id": product_id,
+            "quantity": quantity,
+            "remaining_stock": updated_product["stock"]
+        })
+
+    # Actualizar cliente: aumentar pedidos y gasto total
+    await db["clients"].find_one_and_update(
+        {"_id": client_id},
+        {"$inc": {"pedidos": 1, "gasto_total": order.valor}},  # Incrementa pedidos y gasto
+        return_document=ReturnDocument.AFTER
+    )
+
+    # Insertar la orden en la base de datos
     result = await db["orders"].insert_one(order_data)
+
     return OrderResponse(id=str(result.inserted_id), **order_data)
+
+
 
 # Obtener todos los pedidos
 @router.get("/orders", response_model=List[OrderResponse])
-async def get_orders():
-    orders = await db["orders"].find().to_list(100)
+async def get_orders(current_user: str = Depends(get_current_user)):
+    orders = await db["orders"].find({"user_id": current_user}).to_list(100)
     return [OrderResponse(id=str(order["_id"]), **order) for order in orders]
