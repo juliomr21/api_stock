@@ -77,6 +77,7 @@ class ProductCreate(BaseModel):
     weight: Optional[float] = None
     length: Optional[float] = None
     user_id: Optional[str] = None
+    image_url: Optional[str] = None
 class ProductResponse(ProductCreate):
     id: PyObjectId
 

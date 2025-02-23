@@ -1,5 +1,11 @@
-from typing import List
-from fastapi import APIRouter, HTTPException, Depends
+from typing import List, Optional
+from fastapi import APIRouter, Form, HTTPException, Depends, File, UploadFile
+# from fastapi import APIRouter, File, UploadFile, HTTPException
+import cloudinary.uploader
+from fastapi.responses import JSONResponse
+from cloudinary_config import cloudinary
+
+router = APIRouter()
 from database import db
 from models import LoginRequest, LoginResponse, UserCreate, UserResponse, ClientCreate, ClientResponse, ProductCreate, ProductResponse, OrderCreate, OrderResponse
 from auth import get_current_user, hash_password, verify_password, create_access_token
@@ -64,7 +70,7 @@ async def get_current_user_info(current_user: str = Depends(get_current_user)):
     user["id"] = user["_id"]
     del user["_id"]  # Eliminar el campo _id, ya que 'id' es lo que queremos devolver
 
-    return user
+    return user 
 
 # Ruta para obtener un usuario por ID
 @router.get("/users/{user_id}", response_model=UserResponse)
@@ -97,12 +103,71 @@ async def get_clients(current_user: str = Depends(get_current_user)):
     # Mapear los clientes y retornar la respuesta
     return [ClientResponse(id=str(client["_id"]), **client) for client in clients]
 # Crear un producto
+# @router.post("/products", response_model=ProductResponse)
+# async def create_product(product: ProductCreate,current_user: str = Depends(get_current_user)):
+#     product_data = product.dict()
+#     product_data["user_id"] = current_user
+#     result = await db["products"].insert_one(product_data)
+#     return ProductResponse(id=str(result.inserted_id), **product_data)
+
 @router.post("/products", response_model=ProductResponse)
-async def create_product(product: ProductCreate,current_user: str = Depends(get_current_user)):
-    product_data = product.dict()
-    product_data["user_id"] = current_user
+async def create_product(
+    name: str = Form(...),
+    description: str = Form(...),
+    price: float = Form(...),
+    price_sale: float = Form(...),
+    type_product: str = Form(...),
+    type_stock: bool = Form(...),
+    stock: Optional[int] = Form(None),
+    category: str = Form(...),
+    code_sku: Optional[str] = Form(None),
+    code_bar: Optional[str] = Form(None),
+    width: Optional[float] = Form(None),
+    height: Optional[float] = Form(None),
+    weight: Optional[float] = Form(None),
+    length: Optional[float] = Form(None),
+    image: Optional[UploadFile] = File(None),
+    current_user: str = Depends(get_current_user)
+):
+    product_data = {
+        "name": name,
+        "description": description,
+        "price": price,
+        "price_sale": price_sale,
+        "type_product": type_product,
+        "type_stock": type_stock,
+        "stock": stock,
+        "category": category,
+        "code_sku": code_sku,
+        "code_bar": code_bar,
+        "width": width,
+        "height": height,
+        "weight": weight,
+        "length": length,
+        "user_id": current_user
+    }
+
+    if image:
+        result = cloudinary.uploader.upload(image.file)
+        product_data["image_url"] = result["secure_url"]
+
     result = await db["products"].insert_one(product_data)
     return ProductResponse(id=str(result.inserted_id), **product_data)
+
+@router.post("/upload_image")
+async def upload_image(image: UploadFile = File(...)):
+    try:
+        # Subir la imagen a Cloudinary
+        print("Cloudinary Config:")
+        print("Cloud Name:", cloudinary.config().cloud_name)
+        print("API Key:", cloudinary.config().api_key)
+        print("API Secret:", cloudinary.config().api_secret)
+        result = cloudinary.uploader.upload(image.file)
+    
+        # Retornar la URL de la imagen subida
+        return JSONResponse(content={"url": result["secure_url"]}, status_code=200)
+    except Exception as e:
+        return JSONResponse(content={"detail": str(e)}, status_code=500)
 
 # Obtener todos los productos
 @router.get("/products", response_model=List[ProductResponse])
