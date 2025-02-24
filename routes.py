@@ -148,7 +148,11 @@ async def create_product(
     }
 
     if image:
-        result = cloudinary.uploader.upload(image.file)
+        file_content = await image.read()
+    
+    # Sube el archivo a Cloudinary
+        result = cloudinary.uploader.upload(file_content)
+        # result = cloudinary.uploader.upload(image.file)
         product_data["image_url"] = result["secure_url"]
 
     result = await db["products"].insert_one(product_data)
