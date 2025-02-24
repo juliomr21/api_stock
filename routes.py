@@ -313,7 +313,7 @@ async def create_order(order: OrderCreate, current_user: str = Depends(get_curre
     for item in order.products:
         product_id = ObjectId(item.product_id)
         quantity = item.quantity
-
+    
         # Buscar el producto
         product = await db["products"].find_one({"_id": product_id, "user_id": current_user})
         if not product:
@@ -332,6 +332,7 @@ async def create_order(order: OrderCreate, current_user: str = Depends(get_curre
 
         updated_products.append({
             "product_id": product_id,
+            "product_name": product.get("name"),  # Añadir el nombre del producto
             "quantity": quantity,
             "remaining_stock": updated_product["stock"]
         })
@@ -355,3 +356,22 @@ async def create_order(order: OrderCreate, current_user: str = Depends(get_curre
 async def get_orders(current_user: str = Depends(get_current_user)):
     orders = await db["orders"].find({"user_id": current_user}).to_list(100)
     return [OrderResponse(id=str(order["_id"]), **order) for order in orders]
+# Obtener todos los pedidos
+@router.get("/orders/{id_order}", response_model=OrderResponse)
+async def get_order(id_order: str, current_user: str = Depends(get_current_user)):
+    try:
+        # Convertir id_order a ObjectId
+        order_object_id = ObjectId(id_order)
+        
+        # Hacer la consulta para obtener una orden específica que coincida con el user_id y el id de la orden
+        order = await db["orders"].find_one({"user_id": current_user, "_id": order_object_id})
+        
+        if order is None:
+            return {"detail": "Order not found"}
+        
+        # Retornar la respuesta con el formato adecuado
+        return OrderResponse(id=str(order["_id"]), **order)
+
+    except Exception as e:
+        # Manejo de error
+        return {"detail": str(e)}

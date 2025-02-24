@@ -90,6 +90,9 @@ class OrderItemCreate(BaseModel):
     product_id: PyObjectId
     quantity: int
     price: float
+    name: str
+    image_url: Optional[str] = None 
+    
 
 class OrderCreate(BaseModel):
     user_id: Optional[str] = None
